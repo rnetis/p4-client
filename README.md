@@ -37,7 +37,7 @@ p4-client/
 ## Prerequisites
 
 - **Host tests:** any stable Rust toolchain (1.75+ recommended).
-- **Firmware build/flash:** [ESP-IDF v5.3+](https://docs.espressif.com/projects/esp-idf/en/v5.3.1/esp32p4/get-started/) (v5.3 or newer — MIPI-DSI for the ESP32-P4 display is not in v5.2), plus:
+- **Firmware build/flash:** [ESP-IDF v5.4+](https://docs.espressif.com/projects/esp-idf/en/v5.4.1/esp32p4/get-started/) — required, not optional: the 7B ships ESP32-P4 silicon rev v1.3, which IDF v5.3 refuses to flash (chip-revision limit v0.99), and v5.2 has no MIPI-DSI driver at all. Plus:
   - a USB-C data cable (the board exposes a USB-Serial-JTAG port)
   - a Linux/macOS host with `/dev/ttyACM*` access (add yourself to `dialout`/`uucp` if permission is denied)
 
@@ -53,10 +53,10 @@ cargo fmt && cargo clippy --workspace
 
 ## Full firmware build
 
-1. Install ESP-IDF v5.3+ and set up its environment:
+1. Install ESP-IDF v5.4+ and set up its environment:
 
    ```
-   git clone -b v5.3.1 --recursive https://github.com/espressif/esp-idf.git ~/esp-idf
+   git clone -b v5.4.1 --recursive https://github.com/espressif/esp-idf.git ~/esp-idf
    cd ~/esp-idf && ./install.sh esp32p4
    . ./export.sh                      # do this in every new shell
    ```
