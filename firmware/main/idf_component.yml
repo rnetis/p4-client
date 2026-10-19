@@ -1,3 +1,12 @@
-## Managed components (fetched by the IDF component manager at configure time)
+## IDF Component Manager manifest
 dependencies:
-  espressif/esp_lcd_ek79007: "^1.0.0"
+  # Waveshare board support package: display (EK79007 DSI), GT911 touch,
+  # backlight, LVGL adapter — hardware-validated configuration for this board.
+  # This supersedes the hand-rolled components/board + components/display
+  # bring-up (kept in git history; display bring-up was validated there).
+  waveshare/esp32_p4_wifi6_touch_lcd_7b:
+    version: "==3.0.1"
+  lvgl/lvgl:
+    # Keep pinned to what the BSP's esp_lvgl_adapter (~0.6 line) supports.
+    version: "==9.5.0"
+    public: true

@@ -1,3 +1,0 @@
-## Managed components (fetched by the IDF component manager at configure time)
-dependencies:
-  espressif/esp_lcd_ek79007: "^1.0.0"
