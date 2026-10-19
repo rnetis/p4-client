@@ -1,5 +1,6 @@
 /*
  * display.c — MIPI-DSI panel bring-up for the EK79007 1024x600 panel.
+ * Validated on real hardware (Waveshare ESP32-P4-WiFi6-Touch-LCD-7B).
  *
  * Init sequence (mirrors Waveshare's 07_color_panel example):
  *   1. LDO channel 3 @ 2500 mV powers the MIPI-DSI PHY (mandatory!)

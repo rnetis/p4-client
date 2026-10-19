@@ -99,12 +99,13 @@ cargo fmt && cargo clippy --workspace
 
 3. Expected first-boot output: the `p4-boot` log prints each boot stage
    (hardware init → display → storage → Wi-Fi → config → UI, see
-   `firmware/main/main.c`). Since v0.2.0, the MIPI-DSI panel is initialized
+   `firmware/main/main.c`). Since v0.2.3 the MIPI-DSI panel is initialized
    (`firmware/components/display/`, EK79007 driver) and the screen shows a
-   **test pattern** (8 color bars + grayscale gradient) with backlight on —
-   if you still see a black screen, check the serial log for
-   `DISPLAY INIT FAILED` and the panel control pins in
-   `firmware/components/board/include/board.h` (marked VERIFY).
+   **test pattern** (solid blue → DSI hardware bars → color bars + grayscale
+   gradient) with backlight on. **Display bring-up is validated on real
+   hardware.** If a future build shows a black screen, check the serial log
+   for `DISPLAY INIT FAILED` and the panel control pins in
+   `firmware/components/board/include/board.h`.
    Storage/Wi-Fi/UI bring-up remains scaffolded for later Phase-0 work.
 
 4. Exit the monitor with `Ctrl-]`.
@@ -121,6 +122,7 @@ idf.py -p /dev/ttyACM0 erase-flash flash monitor
 ## Status
 
 Host-testable application layer is implemented and unit/integration tested
-(84/84 green). Firmware: MIPI-DSI display bring-up implemented (EK79007
-panel, test pattern on boot); storage/Wi-Fi/UI bring-up still scaffolded
-pending hardware validation — see `firmware/README.md`.
+(84/84 green). Firmware: **MIPI-DSI display bring-up validated on real
+hardware** (EK79007 panel, test pattern on boot, chip rev v1.3 needs
+IDF v5.4+). Storage/Wi-Fi/UI bring-up still scaffolded — see
+`firmware/README.md`.
