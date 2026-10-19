@@ -64,6 +64,19 @@ void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(1000));     /* let the solid color be visible */
     display_show_test_pattern();
 
+    /* Hardware-pattern diagnostics (Waveshare example style): vertical DSI
+     * bars for 3 s (proves PHY/lanes independent of panel init), then back
+     * to the framebuffer pattern. */
+    if (display_hw_pattern(true) == ESP_OK) {
+        ESP_LOGI(TAG, "DSI hardware pattern: vertical bars for 3 s");
+        vTaskDelay(pdMS_TO_TICKS(3000));
+        display_hw_pattern(false);
+        display_show_test_pattern();     /* restore framebuffer pattern */
+        ESP_LOGI(TAG, "back to framebuffer test pattern");
+    } else {
+        ESP_LOGW(TAG, "DSI hardware pattern not supported by this driver");
+    }
+
     s_boot_stage = BOOT_STORAGE;
     ESP_LOGW(TAG, "storage init: TODO (PRD Phase 0 — SD/FAT mount)");
     s_boot_stage = BOOT_WIFI;

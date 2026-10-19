@@ -110,8 +110,12 @@ esp_err_t display_init(void)
     s_fb = fb_ptr;
     ESP_LOGI(TAG, "framebuffer at %p (%u KB)", s_fb, (unsigned)(FB_BYTES / 1024));
 
+    /* The EK79007 driver may not implement disp_on_off (NOT_SUPPORTED) —
+     * log it but never abort here: the DPI engine scans out regardless. */
     err = esp_lcd_panel_disp_on_off(s_panel, true);
-    if (err != ESP_OK) return err;
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "disp_on_off: %s (continuing)", esp_err_to_name(err));
+    }
 
     /* 6. Prove pixels: solid dark blue first (any garbage is obvious) */
     display_fill(0x00, 0x00, 0x80);
@@ -130,6 +134,18 @@ esp_err_t display_init(void)
 
     ESP_LOGI(TAG, "display online: %dx%d, test pattern shown", BOARD_PANEL_WIDTH_PX, BOARD_PANEL_HEIGHT_PX);
     return ESP_OK;
+}
+
+/* DSI-controller-generated vertical color bars. Bypasses the framebuffer
+ * and the panel's init commands entirely: if THIS is not visible, the
+ * problem is below the driver (PHY power, lanes, DPI clock); if it IS
+ * visible but the framebuffer pattern is not, the problem is panel init
+ * commands or the framebuffer path. */
+esp_err_t display_hw_pattern(bool on)
+{
+    if (!s_panel) return ESP_ERR_INVALID_STATE;
+    return esp_lcd_dpi_panel_set_pattern(
+        s_panel, on ? MIPI_DSI_PATTERN_BAR_VERTICAL : MIPI_DSI_PATTERN_NONE);
 }
 
 void display_fill(uint8_t r, uint8_t g, uint8_t b)
