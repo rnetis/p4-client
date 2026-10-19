@@ -47,7 +47,12 @@ pub struct VncClient<S: Read + Write> {
 
 impl<S: Read + Write> VncClient<S> {
     pub fn new(stream: S, quality: QualityMode) -> Self {
-        Self { stream, width: 0, height: 0, quality }
+        Self {
+            stream,
+            width: 0,
+            height: 0,
+            quality,
+        }
     }
 
     /// Full connect: version exchange, security, auth, init. Returns the
@@ -80,24 +85,39 @@ impl<S: Read + Write> VncClient<S> {
         if name_len > 0 {
             self.stream.read_exact(&mut name)?;
         }
-        log::info!("VNC connected: {}x{} name={}", w, h, String::from_utf8_lossy(&name));
+        log::info!(
+            "VNC connected: {}x{} name={}",
+            w,
+            h,
+            String::from_utf8_lossy(&name)
+        );
         Ok((w, h))
     }
 
     /// Prefer Hextile, fall back to Raw (MVP decoders; PRD prioritizes
     /// responsiveness over image quality).
     fn configure_encodings(&mut self) -> P4Result<()> {
-        let encodings: Vec<i32> = vec![-239 /*pseudo cursor*/, 5 /*hextile*/, 0 /*raw*/];
-        self.stream.write_all(&messages::set_encodings(&encodings))?;
+        let encodings: Vec<i32> = vec![
+            -239, /*pseudo cursor*/
+            5,    /*hextile*/
+            0,    /*raw*/
+        ];
+        self.stream
+            .write_all(&messages::set_encodings(&encodings))?;
         Ok(())
     }
 
     /// Request an incremental framebuffer update for a region (PRD §10:
     /// only changed regions).
     pub fn request_update(&mut self, incremental: bool) -> P4Result<()> {
-        self.stream.write_all(&messages::framebuffer_update_request(
-            0, 0, self.width, self.height, incremental,
-        ))?;
+        self.stream
+            .write_all(&messages::framebuffer_update_request(
+                0,
+                0,
+                self.width,
+                self.height,
+                incremental,
+            ))?;
         Ok(())
     }
 
@@ -125,9 +145,8 @@ impl<S: Read + Write> VncClient<S> {
                     let enc = i32::from_be_bytes([rh[8], rh[9], rh[10], rh[11]]);
                     match enc {
                         0 => {
-                            let bytes = (rect.w as usize)
-                                * (rect.h as usize)
-                                * self.bytes_per_pixel();
+                            let bytes =
+                                (rect.w as usize) * (rect.h as usize) * self.bytes_per_pixel();
                             let mut data = vec![0u8; bytes];
                             self.stream.read_exact(&mut data)?;
                             decode::raw(&rect, &data, fb)?;
@@ -143,9 +162,7 @@ impl<S: Read + Write> VncClient<S> {
                             dirty.push(rect);
                         }
                         other => {
-                            return Err(P4Error::Protocol(format!(
-                                "unsupported encoding {other}"
-                            )))
+                            return Err(P4Error::Protocol(format!("unsupported encoding {other}")))
                         }
                     }
                 }
@@ -178,7 +195,9 @@ impl<S: Read + Write> VncClient<S> {
     }
 
     pub fn send_pointer(&mut self, x: u16, y: u16, mask: u8) -> P4Result<()> {
-        Ok(self.stream.write_all(&messages::pointer_event(x, y, mask))?)
+        Ok(self
+            .stream
+            .write_all(&messages::pointer_event(x, y, mask))?)
     }
 
     pub fn send_key(&mut self, keysym: u32, down: bool) -> P4Result<()> {
@@ -200,7 +219,10 @@ mod tests {
 
     #[test]
     fn pixel_formats_per_quality() {
-        assert_eq!(QualityMode::LowBandwidth.pixel_format(), PixelFormat::RGB332);
+        assert_eq!(
+            QualityMode::LowBandwidth.pixel_format(),
+            PixelFormat::RGB332
+        );
         assert_eq!(QualityMode::Balanced.pixel_format(), PixelFormat::RGB565);
         assert_eq!(QualityMode::Quality.pixel_format(), PixelFormat::RGB888);
     }

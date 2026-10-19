@@ -129,18 +129,26 @@ impl Storage for HostStorage {
         let mut out = Vec::new();
         for entry in fs::read_dir(&p).map_err(|e| P4Error::Storage(e.to_string()))? {
             let entry = entry.map_err(|e| P4Error::Storage(e.to_string()))?;
-            let md = entry.metadata().map_err(|e| P4Error::Storage(e.to_string()))?;
+            let md = entry
+                .metadata()
+                .map_err(|e| P4Error::Storage(e.to_string()))?;
             out.push(FileEntry {
                 name: entry.file_name().to_string_lossy().into_owned(),
-                kind: if md.is_dir() { EntryKind::Dir } else { EntryKind::File },
+                kind: if md.is_dir() {
+                    EntryKind::Dir
+                } else {
+                    EntryKind::File
+                },
                 size: md.len(),
             });
         }
-        out.sort_by(|a, b| match (a.kind == EntryKind::Dir, b.kind == EntryKind::Dir) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.name.cmp(&b.name),
-        });
+        out.sort_by(
+            |a, b| match (a.kind == EntryKind::Dir, b.kind == EntryKind::Dir) {
+                (true, false) => std::cmp::Ordering::Less,
+                (false, true) => std::cmp::Ordering::Greater,
+                _ => a.name.cmp(&b.name),
+            },
+        );
         Ok(out)
     }
 
@@ -153,7 +161,9 @@ impl Storage for HostStorage {
         let mut buf = Vec::new();
         let mut chunk = [0u8; 64 * 1024];
         loop {
-            let n = f.read(&mut chunk).map_err(|e| P4Error::Storage(e.to_string()))?;
+            let n = f
+                .read(&mut chunk)
+                .map_err(|e| P4Error::Storage(e.to_string()))?;
             if n == 0 {
                 break;
             }
@@ -234,8 +244,14 @@ mod tests {
 
     #[test]
     fn sanitize_rejects_traversal() {
-        assert!(matches!(sanitize("../etc/passwd"), Err(P4Error::Security(_))));
-        assert!(matches!(sanitize("books/../../x"), Err(P4Error::Security(_))));
+        assert!(matches!(
+            sanitize("../etc/passwd"),
+            Err(P4Error::Security(_))
+        ));
+        assert!(matches!(
+            sanitize("books/../../x"),
+            Err(P4Error::Security(_))
+        ));
         assert!(matches!(sanitize(""), Err(P4Error::Security(_))));
         assert_eq!(sanitize("books//a.epub").unwrap(), "books/a.epub");
     }

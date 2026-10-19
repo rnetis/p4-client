@@ -99,6 +99,9 @@ mod tests {
         assert_eq!(a, b);
         assert_ne!(a, ch, "response must differ from challenge");
         // Long passwords are truncated to 8 chars
-        assert_eq!(vnc_auth_response("0123456789", &ch), vnc_auth_response("01234567", &ch));
+        assert_eq!(
+            vnc_auth_response("0123456789", &ch),
+            vnc_auth_response("01234567", &ch)
+        );
     }
 }

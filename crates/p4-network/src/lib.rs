@@ -198,11 +198,15 @@ mod tests {
             requires_password: true,
         }]));
         assert_eq!(m.state, WifiState::Disconnected);
-        m.step(NetEvent::ConnectRequested { ssid: "home".into() });
+        m.step(NetEvent::ConnectRequested {
+            ssid: "home".into(),
+        });
         assert_eq!(m.state, WifiState::Connecting);
         m.step(NetEvent::AssociationOk);
         assert_eq!(m.state, WifiState::Connected);
-        m.step(NetEvent::DhcpAcquired { ip: [192, 168, 1, 44] });
+        m.step(NetEvent::DhcpAcquired {
+            ip: [192, 168, 1, 44],
+        });
         assert_eq!(m.state, WifiState::Online);
         assert_eq!(m.ip, Some([192, 168, 1, 44]));
     }
@@ -211,7 +215,9 @@ mod tests {
     fn failure_retries_then_gives_up() {
         let mut m = manager();
         m.step(NetEvent::ConnectRequested { ssid: "x".into() });
-        let fail = || NetEvent::ConnectionFailed { reason: "auth".into() };
+        let fail = || NetEvent::ConnectionFailed {
+            reason: "auth".into(),
+        };
         m.step(fail());
         assert_eq!(m.state, WifiState::Failed);
         assert_eq!(m.retries(), 1);
@@ -226,7 +232,9 @@ mod tests {
     #[test]
     fn auto_reconnect_on_drop() {
         let mut m = manager();
-        m.step(NetEvent::ConnectRequested { ssid: "home".into() });
+        m.step(NetEvent::ConnectRequested {
+            ssid: "home".into(),
+        });
         m.step(NetEvent::AssociationOk);
         m.step(NetEvent::DhcpAcquired { ip: [10, 0, 0, 2] });
         m.link_dropped();
@@ -236,8 +244,13 @@ mod tests {
 
     #[test]
     fn no_reconnect_when_disabled() {
-        let mut m = WifiManager::new(WifiConfig { auto_reconnect: false, ..Default::default() });
-        m.step(NetEvent::ConnectRequested { ssid: "home".into() });
+        let mut m = WifiManager::new(WifiConfig {
+            auto_reconnect: false,
+            ..Default::default()
+        });
+        m.step(NetEvent::ConnectRequested {
+            ssid: "home".into(),
+        });
         m.step(NetEvent::AssociationOk);
         m.step(NetEvent::DhcpAcquired { ip: [10, 0, 0, 2] });
         m.link_dropped();

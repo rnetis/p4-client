@@ -52,7 +52,11 @@ impl SettingsApp {
             dhcp: settings.network.dhcp,
             max_retries: 3,
             auto_reconnect: settings.vnc.auto_reconnect,
-            static_ip: settings.network.static_ip.as_ref().and_then(|s| parse_ip(s)),
+            static_ip: settings
+                .network
+                .static_ip
+                .as_ref()
+                .and_then(|s| parse_ip(s)),
             dns: settings.network.dns.as_ref().and_then(|s| parse_ip(s)),
         };
         Self {
@@ -103,7 +107,13 @@ impl SettingsApp {
     }
 
     /// PRD §25 diagnostics snapshot.
-    pub fn diagnostics(&self, free_heap: usize, psram: usize, rssi: i8, ip: Option<String>) -> String {
+    pub fn diagnostics(
+        &self,
+        free_heap: usize,
+        psram: usize,
+        rssi: i8,
+        ip: Option<String>,
+    ) -> String {
         format!(
             "Firmware: p4-client v{}\nDevice: {}\nFree heap: {free_heap} B\nPSRAM: {psram} B\nWi-Fi RSSI: {rssi} dBm\nIP: {}",
             env!("CARGO_PKG_VERSION"),

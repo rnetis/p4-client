@@ -13,15 +13,9 @@ impl PixelFormat {
     /// true-color, max-red/green/blue, shift-red/green/blue, padding.
     pub fn to_wire(self) -> [u8; 16] {
         match self {
-            PixelFormat::RGB332 => [
-                8, 8, 0, 1, 7, 3, 3, 0, 7, 2, 5, 0, 5, 0, 0, 0,
-            ],
-            PixelFormat::RGB565 => [
-                16, 16, 0, 1, 31, 3, 3, 0, 63, 2, 5, 0, 5, 0, 0, 0,
-            ],
-            PixelFormat::RGB888 => [
-                32, 24, 0, 1, 255, 3, 3, 0, 255, 2, 8, 0, 255, 0, 16, 0,
-            ],
+            PixelFormat::RGB332 => [8, 8, 0, 1, 7, 3, 3, 0, 7, 2, 5, 0, 5, 0, 0, 0],
+            PixelFormat::RGB565 => [16, 16, 0, 1, 31, 3, 3, 0, 63, 2, 5, 0, 5, 0, 0, 0],
+            PixelFormat::RGB888 => [32, 24, 0, 1, 255, 3, 3, 0, 255, 2, 8, 0, 255, 0, 16, 0],
         }
     }
 }

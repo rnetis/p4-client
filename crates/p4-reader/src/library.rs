@@ -60,9 +60,18 @@ impl Library {
         v
     }
 
-    pub fn add_bookmark(&mut self, book_id: &str, chapter: usize, page: usize, label: &str) -> bool {
+    pub fn add_bookmark(
+        &mut self,
+        book_id: &str,
+        chapter: usize,
+        page: usize,
+        label: &str,
+    ) -> bool {
         if let Some(e) = self.entries.iter_mut().find(|e| e.book_id == book_id) {
-            if e.bookmarks.iter().any(|b| b.chapter == chapter && b.page == page) {
+            if e.bookmarks
+                .iter()
+                .any(|b| b.chapter == chapter && b.page == page)
+            {
                 return false;
             }
             e.bookmarks.push(Bookmark {
@@ -127,7 +136,11 @@ mod tests {
         lib.entry("a", "A", 10);
         lib.entry("b", "B", 30);
         lib.entry("c", "C", 20);
-        let ids: Vec<_> = lib.recent().into_iter().map(|e| e.book_id.clone()).collect();
+        let ids: Vec<_> = lib
+            .recent()
+            .into_iter()
+            .map(|e| e.book_id.clone())
+            .collect();
         assert_eq!(ids, vec!["b", "c", "a"]);
     }
 

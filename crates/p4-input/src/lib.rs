@@ -137,7 +137,9 @@ impl GestureRecognizer {
                     }
                     self.last = Some((ev.x, ev.y));
                     if self.fingers >= 2 {
-                        return Gesture::Scroll { dy: dy.clamp(-127, 127) as i8 };
+                        return Gesture::Scroll {
+                            dy: dy.clamp(-127, 127) as i8,
+                        };
                     }
                     if self.moved {
                         return Gesture::Drag { dx, dy };
@@ -156,15 +158,13 @@ impl GestureRecognizer {
                         if self.fingers >= 2 {
                             return Gesture::None_;
                         }
-                        if dur >= self.config.long_press_ms && dist <= self.config.tap_slop_px as i32
+                        if dur >= self.config.long_press_ms
+                            && dist <= self.config.tap_slop_px as i32
                         {
                             return Gesture::LongPress;
                         }
                         if dist > self.config.tap_slop_px as i32 {
-                            let (dx, dy) = (
-                                ev.x as i16 - sx as i16,
-                                ev.y as i16 - sy as i16,
-                            );
+                            let (dx, dy) = (ev.x as i16 - sx as i16, ev.y as i16 - sy as i16);
                             return Gesture::Swipe { dx, dy };
                         }
                         // Tap: check double-tap window.
@@ -190,12 +190,32 @@ impl GestureRecognizer {
 
 /// Map a gesture to mouse semantics (PRD §11 Mouse table).
 pub fn gesture_to_mouse(g: Gesture, x: u16, y: u16) -> Option<MouseEvent> {
-    let mk = |buttons: MouseButtons, wheel: i8| MouseEvent { x, y, buttons, wheel };
+    let mk = |buttons: MouseButtons, wheel: i8| MouseEvent {
+        x,
+        y,
+        buttons,
+        wheel,
+    };
     match g {
-        Gesture::Tap => Some(mk(MouseButtons { left: true, ..Default::default() }, 0)),
-        Gesture::LongPress => Some(mk(MouseButtons { right: true, ..Default::default() }, 0)),
+        Gesture::Tap => Some(mk(
+            MouseButtons {
+                left: true,
+                ..Default::default()
+            },
+            0,
+        )),
+        Gesture::LongPress => Some(mk(
+            MouseButtons {
+                right: true,
+                ..Default::default()
+            },
+            0,
+        )),
         Gesture::Drag { dx, dy } => Some(mk(
-            MouseButtons { left: true, ..Default::default() },
+            MouseButtons {
+                left: true,
+                ..Default::default()
+            },
             0,
         ))
         .map(|mut e| {
@@ -213,8 +233,18 @@ mod tests {
     use super::*;
 
     fn tap(rec: &mut GestureRecognizer, t: &mut u32) -> Vec<Gesture> {
-        let down = TouchEvent { x: 100, y: 100, phase: TouchPhase::Start, fingers: 1 };
-        let up = TouchEvent { x: 100, y: 100, phase: TouchPhase::End, fingers: 1 };
+        let down = TouchEvent {
+            x: 100,
+            y: 100,
+            phase: TouchPhase::Start,
+            fingers: 1,
+        };
+        let up = TouchEvent {
+            x: 100,
+            y: 100,
+            phase: TouchPhase::End,
+            fingers: 1,
+        };
         let g1 = rec.feed(&down, *t);
         *t += 50;
         let g2 = rec.feed(&up, *t);
@@ -252,8 +282,18 @@ mod tests {
     #[test]
     fn long_press() {
         let mut rec = GestureRecognizer::default();
-        let down = TouchEvent { x: 10, y: 10, phase: TouchPhase::Start, fingers: 1 };
-        let up = TouchEvent { x: 10, y: 10, phase: TouchPhase::End, fingers: 1 };
+        let down = TouchEvent {
+            x: 10,
+            y: 10,
+            phase: TouchPhase::Start,
+            fingers: 1,
+        };
+        let up = TouchEvent {
+            x: 10,
+            y: 10,
+            phase: TouchPhase::End,
+            fingers: 1,
+        };
         assert_eq!(rec.feed(&down, 0), Gesture::None_);
         assert_eq!(rec.feed(&up, 600), Gesture::LongPress);
     }
@@ -261,9 +301,19 @@ mod tests {
     #[test]
     fn swipe() {
         let mut rec = GestureRecognizer::default();
-        let down = TouchEvent { x: 400, y: 200, phase: TouchPhase::Start, fingers: 1 };
+        let down = TouchEvent {
+            x: 400,
+            y: 200,
+            phase: TouchPhase::Start,
+            fingers: 1,
+        };
         assert_eq!(rec.feed(&down, 0), Gesture::None_);
-        let up = TouchEvent { x: 100, y: 200, phase: TouchPhase::End, fingers: 1 };
+        let up = TouchEvent {
+            x: 100,
+            y: 200,
+            phase: TouchPhase::End,
+            fingers: 1,
+        };
         match rec.feed(&up, 150) {
             Gesture::Swipe { dx, dy } => {
                 assert!(dx < -100);
@@ -276,9 +326,19 @@ mod tests {
     #[test]
     fn two_finger_move_is_scroll() {
         let mut rec = GestureRecognizer::default();
-        let down = TouchEvent { x: 50, y: 50, phase: TouchPhase::Start, fingers: 2 };
+        let down = TouchEvent {
+            x: 50,
+            y: 50,
+            phase: TouchPhase::Start,
+            fingers: 2,
+        };
         rec.feed(&down, 0);
-        let mv = TouchEvent { x: 50, y: 70, phase: TouchPhase::Move, fingers: 2 };
+        let mv = TouchEvent {
+            x: 50,
+            y: 70,
+            phase: TouchPhase::Move,
+            fingers: 2,
+        };
         assert_eq!(rec.feed(&mv, 20), Gesture::Scroll { dy: 20 });
     }
 

@@ -64,7 +64,12 @@ mod tests {
     #[test]
     fn raw_rgb565_roundtrip() {
         let mut fb = Framebuffer::new(4, 2, PixelFormat::RGB565);
-        let rect = Rect { x: 0, y: 0, w: 4, h: 2 };
+        let rect = Rect {
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 2,
+        };
         let data: Vec<u8> = [0xF8_1Fu16, 0x07_E0, 0x00_1F, 0xFF_FF, 0, 0, 0, 0]
             .iter()
             .flat_map(|p| p.to_be_bytes())
@@ -79,15 +84,28 @@ mod tests {
     #[test]
     fn raw_rejects_short_data() {
         let mut fb = Framebuffer::new(4, 2, PixelFormat::RGB565);
-        let rect = Rect { x: 0, y: 0, w: 4, h: 2 };
-        assert!(matches!(raw(&rect, &[0, 0, 0], &mut fb), Err(P4Error::Protocol(_))));
+        let rect = Rect {
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 2,
+        };
+        assert!(matches!(
+            raw(&rect, &[0, 0, 0], &mut fb),
+            Err(P4Error::Protocol(_))
+        ));
     }
 
     #[test]
     fn copy_rect_moves_pixels() {
         let mut fb = Framebuffer::new(4, 1, PixelFormat::RGB565);
         fb.set_pixel(0, 0, 0x1234);
-        let rect = Rect { x: 2, y: 0, w: 1, h: 1 };
+        let rect = Rect {
+            x: 2,
+            y: 0,
+            w: 1,
+            h: 1,
+        };
         copy_rect(&rect, 0, 0, &mut fb);
         assert_eq!(fb.pixel(2, 0), 0x1234);
     }

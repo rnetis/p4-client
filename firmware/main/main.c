@@ -1,19 +1,22 @@
 /* P4 Client firmware entry point (PRD §7 boot sequence).
  *
- * Power On -> Hardware Init -> Display Init -> Storage Init
- *          -> Wi-Fi Init -> Load Config -> Launch UI
+ * Power On -> Hardware Init -> Display Init -> [Storage/Wi-Fi: Phase 0 TODO]
  *
- * This is the ESP-IDF bring-up skeleton. Each stage logs to the serial
- * console (PRD §24) and sets a boot-progress flag consumed by the Rust
- * application layer once it is linked in via esp-idf-sys. Recovery mode is
- * entered when the BOOT button is held at reset (PRD §23).
+ * v0.2: real MIPI-DSI display bring-up. After display_init() the panel shows
+ * a solid color, then the bring-up test pattern (color bars + grayscale
+ * gradient). If display init fails, the error is logged and the boot stops
+ * there instead of hanging silently (PRD §24: log everything to serial).
+ *
+ * Recovery mode is entered when the BOOT button is held at reset (PRD §23).
  */
 
 #include <stdio.h>
+
+#include "display.h"
+#include "esp_err.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_log.h"
-#include "esp_system.h"
 #include "nvs_flash.h"
 
 static const char *TAG = "p4-boot";
@@ -39,25 +42,42 @@ static void hardware_init(void)
     ESP_LOGI(TAG, "hardware init done");
 }
 
+/* Boot loop: on display failure, blink the log every 5 s so a stuck console
+ * is distinguishable from a hung SoC. */
 void app_main(void)
 {
-    ESP_LOGI(TAG, "P4 Client boot (stage %d)", s_boot_stage);
+    ESP_LOGI(TAG, "P4 Client boot v%s (stage %d)", "0.2.0", s_boot_stage);
 
-    hardware_init();          /* BOOT_HW */
+    hardware_init();                     /* BOOT_HW */
+
     s_boot_stage = BOOT_DISPLAY;
-    /* display_init();        TODO: MIPI-DSI panel bring-up on real board */
+    ESP_LOGI(TAG, "display init (MIPI-DSI, EK79007 1024x600)...");
+    esp_err_t disp = display_init();
+    if (disp != ESP_OK) {
+        ESP_LOGE(TAG, "DISPLAY INIT FAILED: %s — boot halted at stage %d",
+                 esp_err_to_name(disp), s_boot_stage);
+        while (1) {
+            vTaskDelay(pdMS_TO_TICKS(5000));
+            ESP_LOGE(TAG, "boot halted (display init failed)");
+        }
+    }
+    vTaskDelay(pdMS_TO_TICKS(1000));     /* let the solid color be visible */
+    display_show_test_pattern();
+
     s_boot_stage = BOOT_STORAGE;
-    /* storage_init();        TODO: SD/FAT mount */
+    ESP_LOGW(TAG, "storage init: TODO (PRD Phase 0 — SD/FAT mount)");
     s_boot_stage = BOOT_WIFI;
-    /* wifi_init();           TODO: ESP-Hosted (C6) */
+    ESP_LOGW(TAG, "wifi init: TODO (PRD Phase 0 — ESP-Hosted on C6)");
     s_boot_stage = BOOT_CONFIG;
-    /* config_load();         TODO: settings from NVS */
+    ESP_LOGW(TAG, "config load: TODO (PRD Phase 0 — settings from NVS)");
     s_boot_stage = BOOT_UI;
-    /* ui_start();            TODO: start LVGL task, hand off to Rust app layer */
+    ESP_LOGW(TAG, "ui start: TODO (LVGL task + Rust app layer)");
 
-    ESP_LOGI(TAG, "boot skeleton complete; UI bring-up pending (PRD Phase 0)");
+    ESP_LOGI(TAG, "boot complete through stage %d; display test pattern on screen",
+             s_boot_stage);
 
-    for (;;) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(10000));
+        ESP_LOGI(TAG, "alive (stage %d)", s_boot_stage);
     }
 }

@@ -37,7 +37,7 @@ p4-client/
 ## Prerequisites
 
 - **Host tests:** any stable Rust toolchain (1.75+ recommended).
-- **Firmware build/flash:** [ESP-IDF v5.2](https://docs.espressif.com/projects/esp-idf/en/stable/esp32p4/get-started/) with the ESP32-P4 target support installed, plus:
+- **Firmware build/flash:** [ESP-IDF v5.3+](https://docs.espressif.com/projects/esp-idf/en/v5.3.1/esp32p4/get-started/) (v5.3 or newer — MIPI-DSI for the ESP32-P4 display is not in v5.2), plus:
   - a USB-C data cable (the board exposes a USB-Serial-JTAG port)
   - a Linux/macOS host with `/dev/ttyACM*` access (add yourself to `dialout`/`uucp` if permission is denied)
 
@@ -53,10 +53,10 @@ cargo fmt && cargo clippy --workspace
 
 ## Full firmware build
 
-1. Install ESP-IDF v5.2 and set up its environment:
+1. Install ESP-IDF v5.3+ and set up its environment:
 
    ```
-   git clone -b v5.2 --recursive https://github.com/espressif/esp-idf.git ~/esp-idf
+   git clone -b v5.3.1 --recursive https://github.com/espressif/esp-idf.git ~/esp-idf
    cd ~/esp-idf && ./install.sh esp32p4
    . ./export.sh                      # do this in every new shell
    ```
@@ -66,7 +66,7 @@ cargo fmt && cargo clippy --workspace
    ```
    . $IDF_PATH/export.sh
    cd firmware
-   idf.py set-target esp32p4          # first configure only
+   idf.py set-target esp32p4
    idf.py build                       # applies repo-root sdkconfig.defaults
    ```
 
@@ -99,9 +99,13 @@ cargo fmt && cargo clippy --workspace
 
 3. Expected first-boot output: the `p4-boot` log prints each boot stage
    (hardware init → display → storage → Wi-Fi → config → UI, see
-   `firmware/main/main.c`). Display/storage/Wi-Fi bring-up is still
-   scaffolded (`TODO` markers) pending Phase-0 hardware validation — the
-   firmware currently logs the skeleton and idles.
+   `firmware/main/main.c`). Since v0.2.0, the MIPI-DSI panel is initialized
+   (`firmware/components/display/`, EK79007 driver) and the screen shows a
+   **test pattern** (8 color bars + grayscale gradient) with backlight on —
+   if you still see a black screen, check the serial log for
+   `DISPLAY INIT FAILED` and the panel control pins in
+   `firmware/components/board/include/board.h` (marked VERIFY).
+   Storage/Wi-Fi/UI bring-up remains scaffolded for later Phase-0 work.
 
 4. Exit the monitor with `Ctrl-]`.
 
@@ -117,5 +121,6 @@ idf.py -p /dev/ttyACM0 erase-flash flash monitor
 ## Status
 
 Host-testable application layer is implemented and unit/integration tested
-(84/84 green). Firmware bring-up (Phase 0) targets the real board and
-requires the ESP-IDF toolchain plus hardware; see `firmware/README.md`.
+(84/84 green). Firmware: MIPI-DSI display bring-up implemented (EK79007
+panel, test pattern on boot); storage/Wi-Fi/UI bring-up still scaffolded
+pending hardware validation — see `firmware/README.md`.

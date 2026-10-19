@@ -38,7 +38,11 @@ pub fn open(id: &str, title: &str, data: &[u8]) -> P4Result<Book> {
         let text_start = opf[start..].find('>')? + start + 1;
         let end = opf[text_start..].find("</dc:creator>")?;
         let v = opf[text_start..text_start + end].trim();
-        if v.is_empty() { None } else { Some(html_unescape(v).trim().to_string()) }
+        if v.is_empty() {
+            None
+        } else {
+            Some(html_unescape(v).trim().to_string())
+        }
     });
 
     // 3. Read each spine doc, strip tags
@@ -55,12 +59,19 @@ pub fn open(id: &str, title: &str, data: &[u8]) -> P4Result<Book> {
                 let text_start = html[start..].find('>')? + start + 1;
                 let end = html[text_start..].find("</title>")?;
                 let v = html[text_start..text_start + end].trim();
-                if v.is_empty() { None } else { Some(html_unescape(v).trim().to_string()) }
+                if v.is_empty() {
+                    None
+                } else {
+                    Some(html_unescape(v).trim().to_string())
+                }
             })
             .unwrap_or_else(|| href.clone());
         let text = strip_tags(&html);
         if !text.trim().is_empty() {
-            chapters.push(Chapter { title: ch_title, text });
+            chapters.push(Chapter {
+                title: ch_title,
+                text,
+            });
         }
     }
     if chapters.is_empty() {
@@ -237,7 +248,8 @@ mod tests {
             )
             .unwrap();
             w.start_file("OEBPS/ch2.xhtml", opts).unwrap();
-            w.write_all(br#"<html><body><p>Second chapter text.</p></body></html>"#).unwrap();
+            w.write_all(br#"<html><body><p>Second chapter text.</p></body></html>"#)
+                .unwrap();
             w.finish().unwrap();
         }
         buf.into_inner()

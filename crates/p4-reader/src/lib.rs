@@ -6,7 +6,7 @@
 pub mod epub;
 pub mod library;
 
-pub use library::{Bookmark, BookId, Library, ReadingPosition};
+pub use library::{BookId, Bookmark, Library, ReadingPosition};
 
 use p4_core::P4Result;
 
@@ -36,7 +36,10 @@ impl Book {
         self.chapters
             .iter()
             .enumerate()
-            .map(|(i, c)| TocEntry { index: i, title: c.title.clone() })
+            .map(|(i, c)| TocEntry {
+                index: i,
+                title: c.title.clone(),
+            })
             .collect()
     }
 }
@@ -71,7 +74,7 @@ pub fn parse(id: &str, title: &str, format: BookFormat, data: &[u8]) -> P4Result
         BookFormat::Txt => String::from_utf8_lossy(data).into_owned(),
         BookFormat::Markdown => markdown_to_text(&String::from_utf8_lossy(data)),
         BookFormat::Epub => {
-            let mut book = epub::open(id, title, data)?;
+            let book = epub::open(id, title, data)?;
             return Ok(book);
         }
     };
@@ -79,7 +82,10 @@ pub fn parse(id: &str, title: &str, format: BookFormat, data: &[u8]) -> P4Result
         id: id.to_string(),
         title: title.to_string(),
         author: None,
-        chapters: vec![Chapter { title: title.to_string(), text }],
+        chapters: vec![Chapter {
+            title: title.to_string(),
+            text,
+        }],
     })
 }
 
@@ -159,7 +165,12 @@ pub fn paginate(text: &str, chars_per_page: usize) -> Vec<String> {
 }
 
 /// Reading progress percent (PRD §13: progress indicator).
-pub fn progress_percent(chapter: usize, page: usize, total_chapters: usize, total_pages: usize) -> u8 {
+pub fn progress_percent(
+    chapter: usize,
+    page: usize,
+    total_chapters: usize,
+    total_pages: usize,
+) -> u8 {
     if total_chapters == 0 || total_pages == 0 {
         return 0;
     }

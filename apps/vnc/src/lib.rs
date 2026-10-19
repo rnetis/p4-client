@@ -55,7 +55,9 @@ impl VncApp {
         let addr = format!("{}:{}", p.hostname, p.port);
         let stream =
             TcpStream::connect(&addr).map_err(|e| P4Error::Network(format!("{addr}: {e}")))?;
-        stream.set_read_timeout(Some(std::time::Duration::from_secs(10))).ok();
+        stream
+            .set_read_timeout(Some(std::time::Duration::from_secs(10)))
+            .ok();
         let mut client = VncClient::new(stream, self.quality_mode());
         let (w, h) = client.connect(password_str.as_deref())?;
         log::info!("VNC profile '{profile}': {w}x{h}");
@@ -154,12 +156,16 @@ mod tests {
     }
 
     /// Minimal RFB 3.8 mock server: handshake + one raw framebuffer update.
-    fn mock_server(port: u16, password: impl Into<String> + Send + 'static) -> std::thread::JoinHandle<()> {
+    fn mock_server(
+        port: u16,
+        password: impl Into<String> + Send + 'static,
+    ) -> std::thread::JoinHandle<()> {
         let password = password.into();
         std::thread::spawn(move || {
             let listener = std::net::TcpListener::bind(("127.0.0.1", port)).unwrap();
             let (mut sock, _) = listener.accept().unwrap();
-            sock.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+            sock.set_read_timeout(Some(Duration::from_secs(10)))
+                .unwrap();
             sock.write_all(b"RFB 003.008\n").unwrap();
             let mut ver = [0u8; 12];
             sock.read_exact(&mut ver).unwrap();

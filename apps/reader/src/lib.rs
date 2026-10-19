@@ -128,26 +128,27 @@ impl ReaderApp {
         if let Some(e) = self.library.borrow().find(&id) {
             ob.restore(&e.position);
         }
-        self.library
-            .borrow_mut()
-            .entry(&id, &title, 0);
+        self.library.borrow_mut().entry(&id, &title, 0);
         self.open = Some(ob);
         Ok(())
     }
 
     pub fn save_position(&mut self) {
         if let Some(ob) = &self.open {
-            self.library.borrow_mut().entry(&ob.book.id, &ob.book.title, 0).position =
-                ob.position();
+            self.library
+                .borrow_mut()
+                .entry(&ob.book.id, &ob.book.title, 0)
+                .position = ob.position();
         }
     }
 
     pub fn add_bookmark_here(&mut self, label: &str) -> bool {
         match &self.open {
-            Some(ob) => self
-                .library
-                .borrow_mut()
-                .add_bookmark(&ob.book.id, ob.chapter, ob.page, label),
+            Some(ob) => {
+                self.library
+                    .borrow_mut()
+                    .add_bookmark(&ob.book.id, ob.chapter, ob.page, label)
+            }
             None => false,
         }
     }
@@ -190,8 +191,14 @@ mod tests {
             title: "demo".into(),
             author: None,
             chapters: vec![
-                Chapter { title: "c1".into(), text: "one ".repeat(60) },
-                Chapter { title: "c2".into(), text: "two ".repeat(60) },
+                Chapter {
+                    title: "c1".into(),
+                    text: "one ".repeat(60),
+                },
+                Chapter {
+                    title: "c2".into(),
+                    text: "two ".repeat(60),
+                },
             ],
         }
     }
@@ -217,10 +224,16 @@ mod tests {
     #[test]
     fn restore_clamps_page() {
         let mut ob = OpenBook::new(sample_book(), 100);
-        ob.restore(&ReadingPosition { current_chapter: 1, current_page: 9999 });
+        ob.restore(&ReadingPosition {
+            current_chapter: 1,
+            current_page: 9999,
+        });
         assert_eq!(ob.chapter, 1);
         assert_eq!(ob.page, ob.page_count() - 1);
-        ob.restore(&ReadingPosition { current_chapter: 7, current_page: 0 });
+        ob.restore(&ReadingPosition {
+            current_chapter: 7,
+            current_page: 0,
+        });
         assert_eq!(ob.chapter, 0, "invalid chapter ignored");
     }
 
@@ -228,7 +241,9 @@ mod tests {
     fn open_txt_and_resume_via_library() {
         let dir = std::env::temp_dir().join(format!("p4-reader-{}", std::process::id()));
         let mut storage = HostStorage::new(&dir, "sd").unwrap();
-        storage.write("books/demo.txt", b"chapter text ".repeat(40).as_slice()).unwrap();
+        storage
+            .write("books/demo.txt", b"chapter text ".repeat(40).as_slice())
+            .unwrap();
         let lib = Rc::new(RefCell::new(Library::default()));
         let mut app = ReaderApp::new(lib.clone(), 100);
         app.open_from(&storage, "books/demo.txt").unwrap();

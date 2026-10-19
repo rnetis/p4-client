@@ -26,8 +26,18 @@ pub struct Theme {
 }
 
 impl Theme {
-    pub const DARK: Theme = Theme { name: ThemeName::Dark, bg: 0x1082, fg: 0xFFFF, accent: 0x051F };
-    pub const LIGHT: Theme = Theme { name: ThemeName::Light, bg: 0xFFFF, fg: 0x0000, accent: 0x21E0 };
+    pub const DARK: Theme = Theme {
+        name: ThemeName::Dark,
+        bg: 0x1082,
+        fg: 0xFFFF,
+        accent: 0x051F,
+    };
+    pub const LIGHT: Theme = Theme {
+        name: ThemeName::Light,
+        bg: 0xFFFF,
+        fg: 0x0000,
+        accent: 0x21E0,
+    };
     pub fn by_name(n: ThemeName) -> Theme {
         match n {
             ThemeName::Dark => Theme::DARK,
@@ -87,9 +97,16 @@ impl Launcher {
         for (i, (id, _)) in apps.iter().enumerate() {
             let col = i % cols;
             let row = i / cols;
-            let x = (SCREEN_W - tile_w * 2) / 3 + col as u16 * (tile_w + (SCREEN_W - tile_w * 2) / 3);
+            let x =
+                (SCREEN_W - tile_w * 2) / 3 + col as u16 * (tile_w + (SCREEN_W - tile_w * 2) / 3);
             let y = 80 + row as u16 * (tile_h + 40);
-            hitboxes.push(HitBox { id, x, y, w: tile_w, h: tile_h });
+            hitboxes.push(HitBox {
+                id,
+                x,
+                y,
+                w: tile_w,
+                h: tile_h,
+            });
         }
         Self { apps, hitboxes }
     }
@@ -100,12 +117,17 @@ impl Launcher {
 
     /// Dispatch a tap to the launcher; returns the app id hit, if any.
     pub fn tap_at(&self, x: u16, y: u16) -> Option<&'static str> {
-        self.hitboxes.iter().find(|h| h.contains(x, y)).map(|h| h.id)
+        self.hitboxes
+            .iter()
+            .find(|h| h.contains(x, y))
+            .map(|h| h.id)
     }
 
     /// All tiles meet the minimum touch target.
     pub fn touch_targets_valid(&self) -> bool {
-        self.hitboxes.iter().all(|h| h.w >= MIN_TOUCH_TARGET && h.h >= MIN_TOUCH_TARGET)
+        self.hitboxes
+            .iter()
+            .all(|h| h.w >= MIN_TOUCH_TARGET && h.h >= MIN_TOUCH_TARGET)
     }
 }
 
@@ -136,7 +158,10 @@ pub struct VirtualKeyboard {
 
 impl Default for VirtualKeyboard {
     fn default() -> Self {
-        Self { layout: Layout::Lower, shifted: false }
+        Self {
+            layout: Layout::Lower,
+            shifted: false,
+        }
     }
 }
 
@@ -185,11 +210,7 @@ impl VirtualKeyboard {
                     .unwrap_or(KeyAction::SwitchLayout(Layout::Symbols))
             }
             Layout::Symbols => {
-                const ROWS: [&str; 3] = [
-                    r#"[]{}#%^*+=_"#,
-                    r#"\|~<>$€£¥•"#,
-                    ".,?!'",
-                ];
+                const ROWS: [&str; 3] = [r#"[]{}#%^*+=_"#, r#"\|~<>$€£¥•"#, ".,?!'"];
                 match (row, col) {
                     (3, 2) => return KeyAction::Space,
                     (3, 3) => return KeyAction::Enter,
@@ -300,8 +321,18 @@ mod tests {
         let l = Launcher::new(vec![("vnc", "VNC")]);
         let hb = l.hitboxes()[0];
         let mut rec = GestureRecognizer::default();
-        let down = TouchEvent { x: hb.x, y: hb.y, phase: TouchPhase::Start, fingers: 1 };
-        let up = TouchEvent { x: hb.x, y: hb.y, phase: TouchPhase::End, fingers: 1 };
+        let down = TouchEvent {
+            x: hb.x,
+            y: hb.y,
+            phase: TouchPhase::Start,
+            fingers: 1,
+        };
+        let up = TouchEvent {
+            x: hb.x,
+            y: hb.y,
+            phase: TouchPhase::End,
+            fingers: 1,
+        };
         rec.feed(&down, 0);
         let g = rec.feed(&up, 40);
         assert_eq!(g, Gesture::Tap);

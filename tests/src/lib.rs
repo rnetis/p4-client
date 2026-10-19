@@ -4,11 +4,11 @@
 use p4_reader::{BookFormat, Library};
 use p4_settings::{ProfileStore, Settings, StaticKeyProvider, VncProfile, VncSettings};
 use p4_storage::HostStorage;
+use p4_storage::Storage as _;
 use p4_vnc::framebuffer::{Framebuffer, PixelFormat};
 use p4_vnc::{QualityMode, VncClient};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use p4_storage::Storage as _;
 use std::time::Duration;
 
 /// Mock RFB 3.8 server: VNC auth, sends one 2x1 raw update.
@@ -16,7 +16,8 @@ fn mock_rfb_server(port: u16, password: &'static str) -> std::thread::JoinHandle
     std::thread::spawn(move || {
         let listener = TcpListener::bind(("127.0.0.1", port)).unwrap();
         let (mut sock, _) = listener.accept().unwrap();
-        sock.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+        sock.set_read_timeout(Some(Duration::from_secs(10)))
+            .unwrap();
         // version
         sock.write_all(b"RFB 003.008\n").unwrap();
         let mut ver = [0u8; 12];
@@ -84,7 +85,9 @@ fn full_vnc_session_with_auth() {
     std::thread::sleep(Duration::from_millis(100));
 
     let stream = TcpStream::connect(("127.0.0.1", 15910)).unwrap();
-    stream.set_read_timeout(Some(Duration::from_secs(10))).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .unwrap();
     let mut client = VncClient::new(stream, QualityMode::Balanced);
     let (w, h) = client.connect(Some("pw")).unwrap();
     assert_eq!((w, h), (800, 480));
@@ -123,7 +126,9 @@ fn vnc_auth_rejected_stops_connect() {
     });
     std::thread::sleep(Duration::from_millis(100));
     let stream = TcpStream::connect(("127.0.0.1", 15911)).unwrap();
-    stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(5)))
+        .unwrap();
     let mut client = VncClient::new(stream, QualityMode::Balanced);
     assert!(client.connect(Some("wrong")).is_err());
     handle.join().unwrap();
@@ -169,11 +174,15 @@ fn mvp_workflow_smoke() {
         w.start_file("mimetype", opts).unwrap();
         w.write_all(b"application/epub+zip").unwrap();
         w.start_file("META-INF/container.xml", opts).unwrap();
-        w.write_all(br#"<container><rootfiles><rootfile full-path="book.opf"/></rootfiles></container>"#).unwrap();
+        w.write_all(
+            br#"<container><rootfiles><rootfile full-path="book.opf"/></rootfiles></container>"#,
+        )
+        .unwrap();
         w.start_file("book.opf", opts).unwrap();
         w.write_all(br#"<package><manifest><item id="c1" href="c1.xhtml"/></manifest><spine><itemref idref="c1"/></spine></package>"#).unwrap();
         w.start_file("c1.xhtml", opts).unwrap();
-        w.write_all(b"<html><body><p>The Pragmatic Programmer body text.</p></body></html>").unwrap();
+        w.write_all(b"<html><body><p>The Pragmatic Programmer body text.</p></body></html>")
+            .unwrap();
         w.finish().unwrap();
     }
     let epub = buf.into_inner();

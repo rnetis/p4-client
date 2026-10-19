@@ -102,7 +102,12 @@ mod tests {
         m.register(Box::new(NoopApp("settings")));
         let mut l = LauncherApp::new(
             &mut m,
-            vec![("vnc", "VNC"), ("reader", "Books"), ("files", "Files"), ("settings", "Settings")],
+            vec![
+                ("vnc", "VNC"),
+                ("reader", "Books"),
+                ("files", "Files"),
+                ("settings", "Settings"),
+            ],
         );
         let hb = l.launcher().hitboxes()[0];
         assert!(l.tap(hb.x + 2, hb.y + 2));
