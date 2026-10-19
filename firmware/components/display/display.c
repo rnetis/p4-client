@@ -1,17 +1,18 @@
 /*
  * display.c — MIPI-DSI panel bring-up for the EK79007 1024x600 panel.
  *
- * Init sequence: DSI host bus (2 lanes) -> DBI io -> DPI panel (vendor
- * driver esp_lcd_ek79007 with its 60 Hz 1024x600 timing) -> framebuffer ->
- * test pattern flush -> backlight on.
- *
- * The test pattern (color bars + gradient) proves pixels end-to-end before
- * any UI stack (LVGL / Rust layer) is attached (PRD Rule 7).
+ * Init sequence (mirrors Waveshare's 07_color_panel example):
+ *   1. LDO channel 3 @ 2500 mV powers the MIPI-DSI PHY (mandatory!)
+ *   2. DSI host bus (2 lanes)
+ *   3. DBI io -> DPI panel (vendor driver esp_lcd_ek79007, 60 Hz timing)
+ *   4. esp_lcd_panel_reset + init (driver drives LCD_RST on GPIO33)
+ *   5. framebuffer -> test pattern flush -> backlight on (GPIO32, low = lit)
  */
 #include "display.h"
 
 #include "board.h"
 #include "driver/gpio.h"
+#include "esp_ldo_regulator.h"
 #include "esp_lcd_mipi_dsi.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
@@ -27,12 +28,27 @@ static const char *TAG = "p4-display";
 
 static esp_lcd_panel_handle_t s_panel;
 static uint8_t *s_fb;
+static esp_ldo_channel_handle_t s_ldo_phy;
 
 esp_err_t display_init(void)
 {
     esp_err_t err;
 
-    /* 1. MIPI-DSI host bus: 2 data lanes @ 900 Mbps (vendor macro default) */
+    /* 0. Power the MIPI-DSI PHY. The P4's DSI PHY boots in "No Power" state;
+     *    without this LDO channel every later step silently does nothing. */
+    esp_ldo_channel_config_t ldo_cfg = {
+        .chan_id = BOARD_DSI_PHY_LDO_CHAN,
+        .voltage_mv = BOARD_DSI_PHY_LDO_VOLTAGE_MV,
+    };
+    err = esp_ldo_acquire_channel(&ldo_cfg, &s_ldo_phy);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "DSI PHY LDO acquire failed: %s", esp_err_to_name(err));
+        return err;
+    }
+    ESP_LOGI(TAG, "MIPI-DSI PHY powered (LDO chan %d, %d mV)",
+             BOARD_DSI_PHY_LDO_CHAN, BOARD_DSI_PHY_LDO_VOLTAGE_MV);
+
+    /* 1. MIPI-DSI host bus: 2 data lanes (vendor macro default 900 Mbps) */
     esp_lcd_dsi_bus_handle_t dsi_bus;
     esp_lcd_dsi_bus_config_t bus_cfg = EK79007_PANEL_BUS_DSI_2CH_CONFIG();
     err = esp_lcd_new_dsi_bus(&bus_cfg, &dsi_bus);
@@ -50,22 +66,9 @@ esp_err_t display_init(void)
         return err;
     }
 
-    /* 3. Hardware reset (we own the reset line; driver does not toggle it) */
-    gpio_config_t rst_cfg = {
-        .pin_bit_mask = 1ULL << BOARD_PIN_LCD_RST,
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-    };
-    gpio_config(&rst_cfg);
-    gpio_set_level(BOARD_PIN_LCD_RST, 1);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    gpio_set_level(BOARD_PIN_LCD_RST, 0);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    gpio_set_level(BOARD_PIN_LCD_RST, 1);
-    vTaskDelay(pdMS_TO_TICKS(120));
-
-    /* 4. Panel via vendor driver: vendor config wires the DSI bus + DPI
-     *    timing (1024x600 @ 60 Hz, 52 MHz pixel clock, RGB888). */
+    /* 3. Panel via vendor driver: vendor config wires the DSI bus + DPI
+     *    timing (1024x600 @ 60 Hz, 52 MHz pixel clock, RGB888). The driver
+     *    drives LCD_RST (GPIO33) itself via esp_lcd_panel_reset(). */
     esp_lcd_dpi_panel_config_t dpi_cfg =
         EK79007_1024_600_PANEL_60HZ_CONFIG(LCD_COLOR_PIXEL_FORMAT_RGB888);
     ek79007_vendor_config_t vendor_cfg = {
@@ -76,14 +79,19 @@ esp_err_t display_init(void)
         },
     };
     esp_lcd_panel_dev_config_t dev_cfg = {
-        .reset_gpio_num = -1,
+        .reset_gpio_num = BOARD_PIN_LCD_RST,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
-        .bits_per_pixel = 24,
+        .bits_per_pixel = BOARD_PANEL_BPP,
         .vendor_config = &vendor_cfg,
     };
     err = esp_lcd_new_panel_ek79007(io, &dev_cfg, &s_panel);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "EK79007 panel create failed: %s", esp_err_to_name(err));
+        return err;
+    }
+    err = esp_lcd_panel_reset(s_panel);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "panel reset failed: %s", esp_err_to_name(err));
         return err;
     }
     err = esp_lcd_panel_init(s_panel);
@@ -110,13 +118,15 @@ esp_err_t display_init(void)
     err = esp_lcd_panel_draw_bitmap(s_panel, 0, 0, BOARD_PANEL_WIDTH_PX, BOARD_PANEL_HEIGHT_PX, s_fb);
     if (err != ESP_OK) return err;
 
-    /* 7. Backlight on last, so the user never sees an uninitialized panel */
+    /* 7. Backlight on last, so the user never sees an uninitialized panel.
+     *    GPIO32 is ACTIVE LOW on this board: driving it low lights it up. */
     gpio_config_t bl_cfg = {
         .pin_bit_mask = 1ULL << BOARD_PIN_LCD_BL,
         .mode = GPIO_MODE_OUTPUT,
     };
     gpio_config(&bl_cfg);
-    gpio_set_level(BOARD_PIN_LCD_BL, 1);
+    gpio_set_level(BOARD_PIN_LCD_BL, BOARD_LCD_BL_ON_LEVEL);
+    ESP_LOGI(TAG, "backlight on (GPIO%d, active low)", BOARD_PIN_LCD_BL);
 
     ESP_LOGI(TAG, "display online: %dx%d, test pattern shown", BOARD_PANEL_WIDTH_PX, BOARD_PANEL_HEIGHT_PX);
     return ESP_OK;

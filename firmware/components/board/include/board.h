@@ -1,15 +1,15 @@
 /*
- * Board pin map and panel timing for the
+ * Board pin map and panel config for the
  * Waveshare ESP32-P4-WiFi6-Touch-LCD-7B.
  *
- * Panel: 7.0" 1024x600 MIPI-DSI, EK79007 driver IC, 2 data lanes,
- * same panel family as the ESP32-P4-Function-EV-Board MIPI display
- * (esp_lcd_ek79007, DPI clock 52 MHz).
- *
- * VERIFY ON HARDWARE (PRD Rule 7): the *_GPIO values below follow the
- * Waveshare 7B wiki schematic; if the panel stays dark or the log reports
- * a reset/power error, re-check BL_EN / LCD_RST / power-enable pins
- * against the board revision.
+ * Values taken from Waveshare's own esp-idf example
+ * (ESP32-P4-WIFI6-Touch-LCD-7B/examples/esp-idf/07_color_panel):
+ *   - panel: 1024x600 EK79007, MIPI-DSI, 2 data lanes
+ *   - LCD reset: GPIO 33 (active low, driven by the panel driver)
+ *   - backlight: GPIO 32, ACTIVE LOW (low = lit)
+ *   - the MIPI-DSI PHY is powered from the on-chip LDO channel 3 @ 2500 mV;
+ *     without this the PHY stays in "No Power" state and the panel is black
+ *     (this was the v0.2.0 black-screen root cause).
  */
 #pragma once
 
@@ -18,18 +18,14 @@
 /* ---------------- Panel geometry / timing (EK79007, 1024x600) ----------- */
 #define BOARD_PANEL_WIDTH_PX   1024
 #define BOARD_PANEL_HEIGHT_PX  600
-#define BOARD_PANEL_DPI_HZ     (52 * 1000 * 1000)   /* 52 MHz pixel clock */
-#define BOARD_PANEL_LANES      2                     /* MIPI DSI data lanes */
-#define BOARD_PANEL_COLOR_DEPTH 24                    /* RGB888 in, DSC out */
+#define BOARD_PANEL_LANES      2      /* MIPI DSI data lanes */
+#define BOARD_PANEL_BPP        24     /* RGB888 */
 
-/* ---------------- MIPI-DSI host pins (fixed by silicon) ----------------- */
-#define BOARD_PIN_DSI_CLK  GPIO_NUM_26
-#define BOARD_PIN_DSI_D0   GPIO_NUM_24
-#define BOARD_PIN_DSI_D1   GPIO_NUM_25
+/* ---------------- MIPI-DSI PHY power (on-chip LDO) ---------------------- */
+#define BOARD_DSI_PHY_LDO_CHAN        3
+#define BOARD_DSI_PHY_LDO_VOLTAGE_MV  2500
 
 /* ---------------- Panel control ----------------------------------------- */
-#define BOARD_PIN_LCD_RST  GPIO_NUM_27   /* panel reset, active low  (VERIFY) */
-#define BOARD_PIN_LCD_BL   GPIO_NUM_23   /* backlight enable, high = on (VERIFY) */
-
-/* ---------------- Boot feedback ------------------------------------------ */
-#define BOARD_PIN_STATUS_LED GPIO_NUM_NC  /* set when the board has a usable LED */
+#define BOARD_PIN_LCD_RST     GPIO_NUM_33  /* active low; driver-managed */
+#define BOARD_PIN_LCD_BL      GPIO_NUM_32  /* ACTIVE LOW: low = lit      */
+#define BOARD_LCD_BL_ON_LEVEL 0
