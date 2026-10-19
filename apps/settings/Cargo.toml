@@ -1,0 +1,10 @@
+[package]
+name = "p4-app-settings"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+p4-core = { path = "../../crates/p4-core" }
+p4-settings = { path = "../../crates/p4-settings" }
+p4-network = { path = "../../crates/p4-network" }

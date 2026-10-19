@@ -1,0 +1,41 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/p4-core",
+    "crates/p4-settings",
+    "crates/p4-input",
+    "crates/p4-network",
+    "crates/p4-storage",
+    "crates/p4-vnc",
+    "crates/p4-reader",
+    "crates/p4-ui",
+    "apps/launcher",
+    "apps/vnc",
+    "apps/reader",
+    "apps/files",
+    "apps/settings",
+    "tests",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+thiserror = "2"
+log = "0.4"
+aes-gcm = "0.10"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+des = "0.8"
+cipher = "0.4"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

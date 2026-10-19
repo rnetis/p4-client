@@ -1,0 +1,13 @@
+[package]
+name = "p4-app-reader"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+p4-core = { path = "../../crates/p4-core" }
+p4-reader = { path = "../../crates/p4-reader" }
+p4-storage = { path = "../../crates/p4-storage" }
+p4-ui = { path = "../../crates/p4-ui" }
+serde.workspace = true
+serde_json.workspace = true

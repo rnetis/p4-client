@@ -1,0 +1,9 @@
+[package]
+name = "p4-app-files"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+p4-core = { path = "../../crates/p4-core" }
+p4-storage = { path = "../../crates/p4-storage" }
