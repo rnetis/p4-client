@@ -12,3 +12,7 @@ firmware/sdkconfig.old
 .vscode/
 *.swp
 .DS_Store
+
+# ESP-IDF component manager
+firmware/managed_components/
+firmware/dependencies.lock
