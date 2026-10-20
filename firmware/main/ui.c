@@ -7,8 +7,6 @@
  */
 #include "ui.h"
 
-#include "bsp/display.h"
-#include "bsp/esp-bsp.h"
 #include "esp_chip_info.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -213,7 +211,7 @@ void ui_open_launcher_cb(lv_event_t *e)
     /* 2x2 tile grid, centered, generous 120 px hit targets (PRD §8) */
     int col_w = 380, row_h = 190, gap = 24;
     int grid_w = col_w * 2 + gap;
-    int start_x = (BSP_LCD_H_RES - grid_w) / 2;
+    int start_x = (1024 - grid_w) / 2;
     int start_y = 44 + 90;
 
     for (int i = 0; i < APP_COUNT - 1; i++) {

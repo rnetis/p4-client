@@ -1,26 +1,31 @@
 /* P4 Client firmware entry point (PRD §7 boot sequence).
  *
- * v0.4.0: product UI. Boots into the LVGL launcher (status bar + app tiles
- * for VNC / Books / Files / Settings) with GT911 touch input via the
- * Waveshare BSP. Display bring-up was hardware-validated in v0.2–v0.3; the
- * BSP now owns display/touch/backlight. Storage, Wi-Fi and the Rust app
- * layer (VNC/reader/files logic) wire into the UI in upcoming releases.
+ * v0.4.1: back to the hardware-validated display bring-up (components/
+ * display — the exact sequence that showed the test pattern on this board),
+ * with LVGL attached on top via esp_lvgl_port and GT911 touch on I2C.
+ * No BSP in the display path: every layer below LVGL is proven.
  *
- * Recovery mode is entered when the BOOT button is held at reset (PRD §23).
+ * Boot sequence: NVS -> LDO(DSI PHY) -> DSI bus -> EK79007 panel ->
+ * framebuffer -> backlight -> LVGL port -> GT911 touch -> launcher UI.
  */
 
 #include <stdio.h>
 
-#include "bsp/esp-bsp.h"
-#include "bsp/display.h"
+#include "display.h"
 #include "esp_err.h"
+#include "esp_lcd_panel_ops.h"
 #include "esp_log.h"
+#include "esp_lvgl_port.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
+#include "touch.h"
 #include "ui.h"
 
 static const char *TAG = "p4-boot";
+
+/* Panel handle shared with the LVGL port (set by display bring-up). */
+extern esp_lcd_panel_handle_t p4_panel_handle(void);
 
 static void hardware_init(void)
 {
@@ -34,38 +39,52 @@ static void hardware_init(void)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "P4 Client v0.4.0 boot");
+    ESP_LOGI(TAG, "P4 Client v0.4.1 boot");
 
     hardware_init();
 
-    /* Display + touch via the Waveshare BSP (validated config):
-     * triple-buffer partial refresh, GT911 mirrored for panel orientation. */
-    bsp_display_cfg_t cfg = {
-        .lv_adapter_cfg = ESP_LV_ADAPTER_DEFAULT_CONFIG(),
-        .rotation = ESP_LV_ADAPTER_ROTATE_0,
-        .tear_avoid_mode = ESP_LV_ADAPTER_TEAR_AVOID_MODE_TRIPLE_PARTIAL,
-        .touch_flags = {
-            .swap_xy = 0,
-            .mirror_x = 1,
-            .mirror_y = 1,
+    /* 1. Validated display bring-up: LDO -> DSI -> EK79007 -> framebuffer.
+     *    Leaves the panel powered with a solid dark blue test color. */
+    ESP_ERROR_CHECK(display_init());
+
+    /* 2. LVGL port on top of the proven esp_lcd panel handle. */
+    const lvgl_port_cfg_t lvgl_cfg = ESP_LVGL_PORT_INIT_CONFIG();
+    ESP_ERROR_CHECK(lvgl_port_init(&lvgl_cfg));
+
+    lvgl_port_display_cfg_t disp_cfg = {
+        .panel_handle = p4_panel_handle(),
+        .buffer_size = 1024 * 60,          /* 1/10 frame, RGB888, in PSRAM */
+        .double_buffer = true,
+        .hres = 1024,
+        .vres = 600,
+        .color_format = 0,                 /* auto: follow the DPI panel's format */
+        .rotation = {
+            .swap_xy = false,
+            .mirror_x = false,
+            .mirror_y = false,
+        },
+        .flags = {
+            .swap_bytes = false,
+            .buff_dma = false,             /* PSRAM, DPI panel owns its FB */
+            .buff_spiram = true,
         },
     };
-    lv_display_t *display = bsp_display_start_with_config(&cfg);
-    if (display == NULL) {
-        ESP_LOGE(TAG, "display init failed — boot halted");
-        while (1) {
-            vTaskDelay(pdMS_TO_TICKS(5000));
-            ESP_LOGE(TAG, "boot halted (display init failed)");
-        }
+    lv_display_t *lvgl_disp = lvgl_port_add_disp(&disp_cfg);
+    if (lvgl_disp == NULL) {
+        ESP_LOGE(TAG, "LVGL display registration failed — boot halted");
+        while (1) vTaskDelay(pdMS_TO_TICKS(5000));
     }
-    bsp_display_backlight_on();
-    ESP_LOGI(TAG, "display online via BSP, backlight on");
 
-    ESP_ERROR_CHECK(bsp_display_lock(-1) ? ESP_OK : ESP_ERR_TIMEOUT);
+    /* 3. GT911 touch -> LVGL indev */
+    lv_indev_t *indev;
+    ESP_ERROR_CHECK(touch_init(lvgl_disp, &indev));
+
+    /* 4. Product UI */
+    ESP_ERROR_CHECK(lvgl_port_lock(0) ? ESP_OK : ESP_ERR_TIMEOUT);
     ui_init();
-    bsp_display_unlock();
+    lvgl_port_unlock();
 
-    ESP_LOGI(TAG, "launcher up; storage/wifi/rust-app wiring pending");
+    ESP_LOGI(TAG, "launcher up (touch enabled); storage/wifi/rust wiring pending");
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(30000));
